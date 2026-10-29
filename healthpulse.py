@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import io
 import zipfile
-import xml.etree.ElementTree as ET
 from datetime import date, datetime, timedelta
 
 import numpy as np
 import pandas as pd
+# Uploads are untrusted: defusedxml refuses entity declarations (billion laughs) and external entities (XXE).
+from defusedxml.ElementTree import iterparse
 
 TYPES = {
     "HKQuantityTypeIdentifierStepCount": "steps",
@@ -66,7 +67,7 @@ def parse_health_xml(source) -> dict:
     workouts = []
     root = None
     n = 0
-    for ev, el in ET.iterparse(f, events=("start", "end")):
+    for ev, el in iterparse(f, events=("start", "end")):
         if ev == "start":
             if root is None:
                 root = el

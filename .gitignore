@@ -2,3 +2,13 @@ venv/
 __pycache__/
 .pytest_cache/
 *.pyc
+# secrets and real user data - never commit (demo files are whitelisted)
+.env
+.env.*
+.streamlit/secrets.toml
+*.csv
+*.xlsx
+*.zip
+!demo_*.csv
+export.xml
+export_cda.xml

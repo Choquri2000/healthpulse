@@ -3,6 +3,7 @@ import zipfile
 from pathlib import Path
 
 import pandas as pd
+import pytest
 from streamlit.testing.v1 import AppTest
 
 import healthpulse as hp
@@ -82,3 +83,18 @@ def test_app_end_to_end_demo():
     md = " ".join(m.value for m in at.markdown)
     assert "resting heart rate" in md.lower()
     assert len(at.subheader) >= 4
+
+
+def test_apple_style_dtd_accepted_but_entities_rejected():
+    from defusedxml import EntitiesForbidden
+    rec = ('<Record type="HKQuantityTypeIdentifierStepCount" sourceName="iPhone" '
+           'startDate="2025-01-01 10:00:00 +0000" endDate="2025-01-01 11:00:00 +0000" value="1000"/>')
+    apple = ('<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE HealthData [<!ELEMENT HealthData (Record*)>'
+             '<!ATTLIST Record type CDATA #REQUIRED>]><HealthData>' + rec + '</HealthData>')
+    assert hp.load_any(apple.encode(), "a.xml")["steps"].iloc[0] == 1000
+    bomb = ('<?xml version="1.0"?><!DOCTYPE HealthData [<!ENTITY a "aaaaaaaaaa"><!ENTITY b "&a;&a;&a;&a;">]>'
+            '<HealthData>&b;</HealthData>')
+    xxe = '<?xml version="1.0"?><!DOCTYPE HealthData [<!ENTITY x SYSTEM "file:///etc/passwd">]><HealthData>&x;</HealthData>'
+    for bad in (bomb, xxe):
+        with pytest.raises(EntitiesForbidden):
+            hp.load_any(bad.encode(), "a.xml")
